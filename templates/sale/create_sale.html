@@ -1,0 +1,503 @@
+{% extends 'staff_app/dashboard.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <!-- dont change in models -->
+
+    <title>Create Sale</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Main Layout */
+        .sale-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #166088;
+            padding-bottom: 15px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            color: #333;
+            margin: 0;
+        }
+        
+        /* Shop Selection */
+        .shop-selection {
+            margin-bottom: 25px;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #166088;
+        }
+        
+        .shop-selection label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .shop-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        
+        /* Product Search */
+        .product-section {
+            background-color: #fff;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input:focus {
+            border-color: #166088;
+            outline: none;
+        }
+        
+        .search-results {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+            width: 100%;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 0 0 4px 4px;
+        }
+        
+        .search-results-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .search-results-item:hover {
+            background-color: #f0f7f0;
+        }
+        
+        .search-results-item:last-child {
+            border-bottom: none;
+        }
+        
+        .not-in-shop {
+            color: #888;
+            font-style: italic;
+        }
+        
+        /* Products Table */
+        .product-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.05);
+        }
+        
+        .product-table th {
+            background-color: #f5f5f5;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: bold;
+            color: #555;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .product-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        
+        .product-table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .product-table .empty-message {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-style: italic;
+        }
+        
+        .product-name {
+            font-weight: 500;
+        }
+        
+        /* Form Controls */
+        .quantity-input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+        
+        /* Summary Section */
+        .summary-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .total-container {
+            font-size: 18px;
+        }
+        
+        .total-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .total-amount {
+            font-size: 22px;
+            font-weight: bold;
+            color: #166088;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            color: #777;
+        }
+        
+        .empty-state p {
+            margin-bottom: 15px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .product-table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .summary-section {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .total-container {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="sale-container">
+    <div class="page-header">
+        <h2 class="page-title">Create New Sale</h2>
+    </div>
+
+    <!-- Shop Selection -->
+    <div class="shop-selection">
+        <label for="shop">Select Shop:</label>
+        <select id="shop" class="shop-select">
+            <option value="">-- Select Shop --</option>
+            {% for shop in shops %}
+                <option value="{{ shop.id }}">{{ shop.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Add Product Section -->
+    <div id="product-section" class="product-section" style="display:none;">
+        <div class="search-container">
+            <input type="text" id="product-search" class="search-input" placeholder="Search for products to add...">
+            <div id="search-results" class="search-results"></div>
+        </div>
+
+        <form id="sale-form">
+            <table id="product-table" class="product-table">
+                <thead>
+                    <tr>
+                        <th width="40%">Product</th>
+                        <th width="15%">Price</th>
+                        <th width="15%">Quantity</th>
+                        <th width="20%">Subtotal</th>
+                        <th width="10%">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="empty-message">
+                        <td colspan="5">No products added yet. Search above to add products.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="summary-section">
+                <div class="total-container">
+                    <span class="total-label">Total:</span>
+                    <span class="total-amount">₹<span id="total">0.00</span></span>
+                </div>
+                <button type="submit" class="btn btn-primary">Complete Sale</button>
+            </div>
+        </form>
+    </div>
+    
+    <div id="initial-empty-state" class="empty-state">
+        <p>Please select a shop to start creating a sale.</p>
+    </div>
+</div>
+
+<script>
+let allProducts = [];
+let selectedProducts = [];
+
+$('#shop').on('change', function () {
+    const shopId = $(this).val();
+    if (shopId) {
+        $('#product-section').show();
+        $('#initial-empty-state').hide();
+        fetch(`/api/shop-products/${shopId}/`)
+            .then(response => response.json())
+            .then(data => {
+                allProducts = data.products;
+                // Reset product selection
+                $('#product-search').val('');
+                $('#search-results').hide();
+                selectedProducts = [];
+                renderTable();
+            });
+    } else {
+        $('#product-section').hide();
+        $('#initial-empty-state').show();
+        selectedProducts = [];
+        updateTotal();
+    }
+});
+
+// Product search functionality
+$('#product-search').on('input', function() {
+    const searchTerm = $(this).val().toLowerCase();
+    if (searchTerm.length < 2) {
+        $('#search-results').hide();
+        return;
+    }
+    
+    const filtered = allProducts.filter(p => 
+        p.product_name.toLowerCase().includes(searchTerm)
+    );
+    
+    if (filtered.length === 0) {
+        $('#search-results').html('<div class="search-results-item">No products found</div>').show();
+        return;
+    }
+    
+    const resultsHtml = filtered.map(product => {
+        const alreadyAdded = selectedProducts.some(p => {
+            // Handle both shop_product_id and product_id comparisons
+            if (product.id) return p.shop_product_id === product.id;
+            return p.product_id === product.product_id;
+        });
+        
+        const disabledClass = alreadyAdded ? 'not-in-shop' : '';
+        const disabledAttr = alreadyAdded ? 'disabled' : '';
+        
+        return `<div class="search-results-item ${disabledClass}" 
+                     data-product-id="${product.product_id}" 
+                     data-shop-product-id="${product.id}"
+                     data-name="${product.product_name}"
+                     data-price="${product.price}"
+                     data-in-shop="${product.is_in_shop}"
+                     ${disabledAttr}>
+                <span class="product-name">${product.product_name}</span>
+                <span style="float: right;">₹${product.price}</span>
+                ${alreadyAdded ? '<span style="display: block; font-size: 12px;">(Already added)</span>' : ''}
+                </div>`;
+    }).join('');
+    
+    $('#search-results').html(resultsHtml).show();
+});
+
+// Handle click on search result
+$(document).on('click', '.search-results-item:not([disabled])', function() {
+    const productId = $(this).data('product-id');
+    const shopProductId = $(this).data('shop-product-id');
+    const name = $(this).data('name');
+    const price = parseFloat($(this).data('price'));
+    const isInShop = $(this).data('in-shop');
+    
+    selectedProducts.push({
+        product_id: productId,
+        shop_product_id: shopProductId,
+        name: name,
+        price: price,
+        quantity: 1,
+        is_in_shop: isInShop
+    });
+    
+    $('#product-search').val('');
+    $('#search-results').hide();
+    renderTable();
+});
+
+// Hide search results when clicking elsewhere
+$(document).on('click', function(e) {
+    if (!$(e.target).closest('#product-search, #search-results').length) {
+        $('#search-results').hide();
+    }
+});
+
+function renderTable() {
+    const tbody = $('#product-table tbody');
+    tbody.html('');
+    
+    if (selectedProducts.length === 0) {
+        tbody.html('<tr class="empty-message"><td colspan="5">No products added yet. Search above to add products.</td></tr>');
+    } else {
+        selectedProducts.forEach((product, index) => {
+            const subtotal = (product.price * product.quantity).toFixed(2);
+            
+            tbody.append(`
+                <tr class="product-row" data-index="${index}">
+                    <td class="product-name">${product.name}</td>
+                    <td>₹${product.price.toFixed(2)}</td>
+                    <td><input type="number" value="${product.quantity}" min="1" class="quantity-input"></td>
+                    <td>₹${subtotal}</td>
+                    <td><button type="button" class="btn btn-danger remove-btn">Remove</button></td>
+                </tr>
+            `);
+        });
+    }
+    updateTotal();
+}
+
+$(document).on('input', '.quantity-input', function () {
+    const index = $(this).closest('.product-row').data('index');
+    const qty = parseInt($(this).val()) || 1;
+    selectedProducts[index].quantity = qty;
+    const subtotal = (selectedProducts[index].price * qty).toFixed(2);
+    $(this).closest('tr').find('td:nth-child(4)').text('₹' + subtotal);
+    updateTotal();
+});
+
+$(document).on('click', '.remove-btn', function () {
+    const index = $(this).closest('.product-row').data('index');
+    selectedProducts.splice(index, 1);
+    renderTable();
+});
+
+function updateTotal() {
+    let total = 0;
+    selectedProducts.forEach(p => {
+        total += p.price * p.quantity;
+    });
+    $('#total').text(total.toFixed(2));
+}
+
+$('#sale-form').on('submit', function (e) {
+    e.preventDefault();
+    const shopId = $('#shop').val();
+    
+    // Validate form inputs
+    if (!shopId) {
+        alert("Please select a shop before creating a sale.");
+        return;
+    }
+    
+    if (selectedProducts.length === 0) {
+        alert("Please add at least one product to the sale.");
+        return;
+    }
+
+    const products = selectedProducts.map(p => ({
+        product_id: p.product_id,
+        shop_product_id: p.shop_product_id,
+        quantity: p.quantity,
+        price: p.price
+    }));
+
+    $.ajax({
+        url: '/api/submit-sale/',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ shop_id: shopId, products: products }),
+        success: function (response) {
+            alert("Sale created successfully!");
+            // Show success message and redirect
+            window.location.href = '/sales/';
+        },
+        error: function (xhr) {
+            let errorMsg = "Error creating sale.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+            }
+            alert(errorMsg);
+        }
+    });
+});
+</script>
+
+</body>
+</html>
+{% endblock %}

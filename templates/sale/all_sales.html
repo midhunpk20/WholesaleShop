@@ -1,0 +1,107 @@
+{% extends 'staff_app/dashboard.html' %}
+
+{% block content %}
+<h2>All Sales</h2>
+
+<div style="margin-bottom: 20px; font-weight: bold; font-size: 18px;">
+    Total Sales Amount: ₹{{ total_sales_amount }}
+</div>
+
+{% if sales %}
+<table style="width:100%; border-collapse: collapse;" border="1" cellpadding="8" cellspacing="0">
+    <thead style="background-color: #f2f2f2;">
+        <tr>
+            <th>Shop</th>
+            <th>Date</th>
+            <th>Total Amount (₹)</th>
+            <th>Details</th>
+            <th>More Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sale in sales %}
+        <tr>
+            <td>{{ sale.shop.name }} - {{ sale.shop.location }}</td>
+            <td>{{ sale.date_created|date:"Y-m-d H:i" }}</td>
+            <td>{{ sale.total_amount }}</td>
+            <td>
+                <button type="button" onclick="document.getElementById('details-{{ sale.id }}').classList.toggle('hidden')">
+                    Product List
+                </button>
+            </td>
+            <td>
+                <a href="{% url 'shop_sales' sale.shop.id %}" class="button-link">
+                    More Info
+                </a>
+            </td>
+        </tr>
+        <tr id="details-{{ sale.id }}" class="hidden">
+            <td colspan="6">
+                <table class="details-table">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Quantity</th>
+                            <th>Unit Price (₹)</th>
+                            <th>Subtotal (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sale.saleitems.all %}
+                        <tr>
+                            <td>{{ item.shop_product.product.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>₹{{ item.price }}</td>
+                            <td>₹{{ item.subtotal }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No sales found.</p>
+{% endif %}
+
+<style>
+.hidden {
+    display: none;
+}
+button, .button-link {
+    cursor: pointer;
+    padding: 5px 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-decoration: none;
+    color: black;
+    font-size: 14px;
+    display: inline-block;
+}
+button:hover, .button-link:hover {
+    background-color: #e0e0e0;
+}
+.details-container {
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+.details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+.details-table th, .details-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+.details-table th {
+    background-color: #f2f2f2;
+}
+</style>
+
+{% endblock %}

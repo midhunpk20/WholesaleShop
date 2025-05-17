@@ -1,0 +1,111 @@
+{% extends 'staff_app/dashboard.html' %}
+{% block title %}Shop Products{% endblock %}
+
+{% block content %}
+<div class="filter-section">
+    <form method="get">
+        <div class="filter-group">
+            <label for="shop-filter">Filter by Shop:</label>
+            <select id="shop-filter" name="shop_id" onchange="this.form.submit()">
+                <option value="all" {% if selected_shop_id == 'all' %}selected{% endif %}>All Shops</option>
+                {% for shop in shops %}
+                <option value="{{ shop.id }}" {% if selected_shop_id == shop.id|stringformat:"s" %}selected{% endif %}>{{ shop.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="search">Search Products:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="search" name="search" 
+                       placeholder="Enter product name..." 
+                       value="{{ search_query }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Search
+                </button>
+                {% if search_query or selected_shop_id != 'all' %}
+                <a href="{% url 'shop_product_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Shop</th>
+                <th>Product</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in page_obj %}
+            <tr>
+                <td>
+                    {% if item.shop %}
+                        {{ item.shop.name }}
+                    {% else %}
+                        {{ item.shop }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.product %}
+                        {{ item.product.name }}
+                    {% else %}
+                        {{ item.product }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.custom_price %}
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: bold;">₹{{ item.custom_price }}</span>
+                            <span style="font-size: 0.8em; color: #666;">Default: ₹{{ item.product.default_price }}</span>
+                        </div>
+                    {% else %}
+                        {% if item.product.default_price %}
+                            <span>₹{{ item.product.default_price }}</span>
+                        {% elif item.product %}
+                            <span>₹{{ item.product.default_price }}</span>
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" style="text-align: center;">No shop products found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if selected_shop_id != 'all' %}&shop_id={{ selected_shop_id }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                <i class="fas fa-angle-double-left"></i> First
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if selected_shop_id != 'all' %}&shop_id={{ selected_shop_id }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                <i class="fas fa-angle-left"></i> Previous
+            </a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if selected_shop_id != 'all' %}&shop_id={{ selected_shop_id }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                Next <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if selected_shop_id != 'all' %}&shop_id={{ selected_shop_id }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                Last <i class="fas fa-angle-double-right"></i>
+            </a>
+        {% endif %}
+    </span>
+</div>
+{% endblock %}

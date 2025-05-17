@@ -1,0 +1,211 @@
+{% extends 'staff_app/dashboard.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shop Sales</title>
+    <style>
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .shop-info {
+            flex: 1;
+        }
+        .shop-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .shop-details {
+            color: #666;
+        }
+        .summary-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .summary-label {
+            font-weight: bold;
+        }
+        .sale-box {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .sale-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .advance-payment {
+            margin-top: 30px;
+            background-color: #f0f8ff;
+            border: 1px solid #add8e6;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        .advance-form {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .advance-form input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 150px;
+        }
+        .advance-form button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .advance-form button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="shop-header">
+        <div class="shop-info">
+            <div class="shop-name">{{ shop.name }}</div>
+            <div class="shop-details">
+                {% if shop.location %}<span>{{ shop.location }}</span> • {% endif %}
+                {% if shop.phone %}<span>{{ shop.phone }}</span> • {% endif %}
+                <span>{{ shop.email }}</span>
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'sale_list' %}" style="text-decoration: none; color: #666;">← Back to Shops</a>
+        </div>
+    </div>
+
+    <div class="summary-box">
+        <div class="summary-row">
+            <span class="summary-label">Total Sales:</span>
+            <span>{{ sales.count }}</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-label">Total Amount:</span>
+            <span>₹{{ total_sales_amount }}</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-label">Current Paid Amount:</span>
+            <span>₹{{ shop.balance }}</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-label">Remaining Balance:</span>
+            <span>₹{{ remaining_balance}}</span>
+        </div>
+    </div>
+
+    <h3>Sales History</h3>
+    {% for sale in sales %}
+        <div class="sale-box">
+            <div class="sale-header">
+                <h4>Sale #{{ sale.id }} - {{ sale.date_created|date:"Y-m-d H:i" }}</h4>
+                <div>
+                    <span style="margin-right: 15px;">
+                        
+                    </span>
+                    <strong>Download Bill :</strong>
+                    <a href="{% url 'sale_invoice_pdf' sale.id %}" target="_blank">Download Bill</a>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in sale.saleitems.all %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.shop_product.product.name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>₹{{ item.price }}</td>
+                        <td>₹{{ item.subtotal }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="summary-row" style="margin-top: 10px;">
+                <span><strong>Total Amount:</strong> ₹{{ sale.total_amount }}</span>
+            </div>
+        </div>
+    {% empty %}
+        <p>No sales found for this shop.</p>
+    {% endfor %}
+
+    <div class="advance-payment">
+    <h3>Record Advance Payment</h3>
+    <p>Add an advance payment to update the shop's balance.</p>
+    <form method="post" action="{% url 'record_advance_payment' shop.id %}" class="advance-form">
+        {% csrf_token %}
+        <input type="number" name="amount" step="0.01" min="0" placeholder="Enter amount" required>
+        <button type="submit">Record Payment</button>
+    </form>
+
+    <h4 style="margin-top: 20px;">Advance Payment History</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Amount</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for advance in sales %}
+                {% if advance.total_amount == 0 %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>₹{{ advance.amount_paid }}</td>
+                    <td>{{ advance.date_created|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% endif %}
+            {% empty %}
+                <tr><td colspan="3">No advance payments found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+{% endblock %}
