@@ -13,7 +13,9 @@
         <tr>
             <th>Shop</th>
             <th>Date</th>
-            <th>Total Amount (₹)</th>
+            <th>Subtotal (₹)</th>
+            <th>Discount (₹)</th>
+            <th>Final Amount (₹)</th>
             <th>Details</th>
             <th>More Details</th>
         </tr>
@@ -23,7 +25,18 @@
         <tr>
             <td>{{ sale.shop.name }} - {{ sale.shop.location }}</td>
             <td>{{ sale.date_created|date:"Y-m-d H:i" }}</td>
-            <td>{{ sale.total_amount }}</td>
+            <td>₹{{ sale.total_amount|add:sale.discount_amount }}</td>
+            <td>
+                {% if sale.discount_percent > 0 or sale.discount_amount > 0 %}
+                    ₹{{ sale.discount_amount }}
+                    {% if sale.discount_percent > 0 %}
+                        <br><small>({{ sale.discount_percent }}%)</small>
+                    {% endif %}
+                {% else %}
+                    ₹0.00
+                {% endif %}
+            </td>
+            <td><strong>₹{{ sale.total_amount }}</strong></td>
             <td>
                 <button type="button" onclick="document.getElementById('details-{{ sale.id }}').classList.toggle('hidden')">
                     Product List
@@ -36,28 +49,60 @@
             </td>
         </tr>
         <tr id="details-{{ sale.id }}" class="hidden">
-            <td colspan="6">
-                <table class="details-table">
-                    <thead>
-                        <tr>
-                            <th>Product Name</th>
-                            <th>Quantity</th>
-                            <th>Unit Price (₹)</th>
-                            <th>Subtotal (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in sale.saleitems.all %}
-                        <tr>
-                            <td>{{ item.shop_product.product.name }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>₹{{ item.price }}</td>
-                            <td>₹{{ item.subtotal }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-
+            <td colspan="7">
+                <div class="details-container">
+                    <table class="details-table">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Quantity</th>
+                                <th>Unit Price (₹)</th>
+                                <th>Subtotal (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in sale.saleitems.all %}
+                            <tr>
+                                <td>{{ item.shop_product.product.name }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>₹{{ item.price }}</td>
+                                <td>₹{{ item.subtotal }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <!-- Discount breakdown -->
+                    {% if sale.discount_percent > 0 or sale.discount_amount > 0 %}
+                    <div class="discount-summary">
+                        <h4>Discount Details:</h4>
+                        <div class="discount-breakdown">
+                            <div class="discount-row">
+                                <span>Subtotal (before discount):</span>
+                                <span>₹{{ sale.total_amount|add:sale.discount_amount }}</span>
+                            </div>
+                            {% if sale.discount_percent > 0 %}
+                            <div class="discount-row">
+                                <span>Percentage Discount ({{ sale.discount_percent }}%):</span>
+                                <span>-₹{% widthratio sale.total_amount|add:sale.discount_amount sale.discount_percent 100 %}</span>
+                            </div>
+                            {% endif %}
+                            {% if sale.discount_amount > 0 %}
+                            <div class="discount-row">
+                                <span>
+                                    {% if sale.discount_percent > 0 %}Additional {% endif %}Discount Amount:
+                                </span>
+                                <span>-₹{{ sale.discount_amount }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="discount-row total-row">
+                                <span><strong>Final Total:</strong></span>
+                                <span><strong>₹{{ sale.total_amount }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
             </td>
         </tr>
         {% endfor %}
@@ -86,13 +131,14 @@ button:hover, .button-link:hover {
     background-color: #e0e0e0;
 }
 .details-container {
-    padding: 10px;
+    padding: 15px;
     background-color: #f9f9f9;
+    border-radius: 5px;
 }
 .details-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
+    margin-bottom: 15px;
 }
 .details-table th, .details-table td {
     border: 1px solid #ddd;
@@ -101,6 +147,32 @@ button:hover, .button-link:hover {
 }
 .details-table th {
     background-color: #f2f2f2;
+}
+.discount-summary {
+    background-color: #fff3cd;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #ffeaa7;
+    margin-top: 15px;
+}
+.discount-summary h4 {
+    color: #856404;
+    margin-bottom: 10px;
+}
+.discount-breakdown {
+    font-size: 14px;
+}
+.discount-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 3px 0;
+}
+.discount-row.total-row {
+    border-top: 1px solid #856404;
+    padding-top: 8px;
+    margin-top: 8px;
+    font-size: 16px;
 }
 </style>
 

@@ -203,9 +203,10 @@ def submit_sale(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         shop_id = data.get('shop_id')
-        products = data.get('products')  # list of {product_id, quantity, price}
+        products = data.get('products')  # List of {product_id, quantity, price}
+        discount_percent = Decimal(data.get('discount_percent', 0))
+        discount_amount = Decimal(data.get('discount_amount', 0))
 
-        # Validate that shop and products exist and products is not empty
         if not shop_id:
             return JsonResponse({'status': 'error', 'message': 'No shop selected'}, status=400)
         if not products or len(products) == 0:
@@ -213,30 +214,32 @@ def submit_sale(request):
 
         try:
             shop = Shop.objects.get(id=shop_id)
-            
-            # Create sale transaction with products
+
             with transaction.atomic():
-                sale = Sale.objects.create(shop=shop)
+                sale = Sale.objects.create(
+                    shop=shop,
+                    discount_percent=discount_percent,
+                    discount_amount=discount_amount
+                )
+
                 total_amount = Decimal('0.0')
-                
+
                 for item in products:
                     product_id = item.get('product_id')
                     shop_product_id = item.get('shop_product_id')
                     quantity = int(item['quantity'])
                     price = Decimal(item['price'])
-                    
-                    # Get or create ShopProduct entry
+
                     if shop_product_id:
                         shop_product = ShopProduct.objects.get(id=shop_product_id)
                     else:
-                        # Product not yet associated with shop - create the association
                         product = Product.objects.get(id=product_id)
-                        shop_product, created = ShopProduct.objects.get_or_create(
+                        shop_product, _ = ShopProduct.objects.get_or_create(
                             shop=shop,
                             product=product,
                             defaults={'custom_price': price if price != product.default_price else None}
                         )
-                    
+
                     subtotal = quantity * price
 
                     SaleItem.objects.create(
@@ -248,8 +251,17 @@ def submit_sale(request):
                     )
                     total_amount += subtotal
 
-                # Only save the sale if products were added successfully
-                sale.total_amount = total_amount
+                # Apply discount percent (if any)
+                if discount_percent > 0:
+                    discount_value = (total_amount * discount_percent / Decimal('100.0')).quantize(Decimal('0.01'))
+                    discount_amount += discount_value  # combine with manually added discount_amount
+
+                total_after_discount = total_amount - discount_amount
+                if total_after_discount < 0:
+                    total_after_discount = Decimal('0.0')
+
+                sale.discount_amount = discount_amount
+                sale.total_amount = total_after_discount
                 sale.save()
 
             return JsonResponse({'status': 'success', 'sale_id': sale.id})
@@ -257,8 +269,6 @@ def submit_sale(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=405)
-
-
 #shop sales LISTING
 
 def sale_list_view(request):

@@ -194,30 +194,124 @@
             background-color: #d32f2f;
         }
         
+        /* Discount Section */
+        .discount-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .discount-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .discount-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .discount-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .discount-group label {
+            font-weight: 500;
+            color: #555;
+            white-space: nowrap;
+        }
+        
+        .discount-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 120px;
+        }
+        
+        .discount-input:focus {
+            border-color: #166088;
+            outline: none;
+        }
+        
+        .currency-symbol {
+            color: #666;
+            font-weight: 500;
+        }
+        
         /* Summary Section */
         .summary-section {
             background-color: #f9f9f9;
             padding: 20px;
             border-radius: 6px;
             margin-bottom: 25px;
+        }
+        
+        .summary-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 10px;
+            font-size: 16px;
         }
         
-        .total-container {
-            font-size: 18px;
+        .summary-row:last-child {
+            margin-bottom: 0;
+            border-top: 2px solid #ddd;
+            padding-top: 15px;
+            margin-top: 15px;
         }
         
-        .total-label {
+        .summary-label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .summary-amount {
             font-weight: bold;
-            margin-right: 10px;
+            color: #333;
         }
         
-        .total-amount {
-            font-size: 22px;
-            font-weight: bold;
+        .total-row {
+            font-size: 20px;
+        }
+        
+        .total-row .summary-amount {
             color: #166088;
+            font-size: 22px;
+        }
+        
+        .discount-amount {
+            color: #e91e63;
+        }
+        
+        .complete-sale-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .btn-complete-sale {
+            padding: 12px 30px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-complete-sale:hover {
+            background-color: #45a049;
         }
         
         /* Empty State */
@@ -240,13 +334,13 @@
                 overflow-x: auto;
             }
             
-            .summary-section {
+            .discount-row {
                 flex-direction: column;
-                text-align: center;
+                gap: 15px;
             }
             
-            .total-container {
-                margin-bottom: 15px;
+            .summary-section {
+                text-align: center;
             }
         }
     </style>
@@ -294,12 +388,42 @@
                 </tbody>
             </table>
 
-            <div class="summary-section">
-                <div class="total-container">
-                    <span class="total-label">Total:</span>
-                    <span class="total-amount">₹<span id="total">0.00</span></span>
+            <!-- Discount Section -->
+            <div class="discount-section">
+                <div class="discount-title">Apply Discount</div>
+                <div class="discount-row">
+                    <div class="discount-group">
+                        <label for="discount-percent">Discount %:</label>
+                        <input type="number" id="discount-percent" class="discount-input" 
+                               min="0" max="100" step="0.01" value="0" placeholder="0.00">
+                        <span class="currency-symbol">%</span>
+                    </div>
+                    <div class="discount-group">
+                        <label for="discount-amount">Fixed Discount:</label>
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="discount-amount" class="discount-input" 
+                               min="0" step="0.01" value="0" placeholder="0.00">
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Complete Sale</button>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <div class="summary-row">
+                    <span class="summary-label">Subtotal:</span>
+                    <span class="summary-amount">₹<span id="subtotal">0.00</span></span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Discount:</span>
+                    <span class="summary-amount discount-amount">- ₹<span id="total-discount">0.00</span></span>
+                </div>
+                <div class="summary-row total-row">
+                    <span class="summary-label">Total:</span>
+                    <span class="summary-amount">₹<span id="total">0.00</span></span>
+                </div>
+                <div class="complete-sale-container">
+                    <button type="submit" class="btn-complete-sale">Complete Sale</button>
+                </div>
             </div>
         </form>
     </div>
@@ -326,6 +450,8 @@ $('#shop').on('change', function () {
                 $('#product-search').val('');
                 $('#search-results').hide();
                 selectedProducts = [];
+                $('#discount-percent').val(0);
+                $('#discount-amount').val(0);
                 renderTable();
             });
     } else {
@@ -447,12 +573,38 @@ $(document).on('click', '.remove-btn', function () {
     renderTable();
 });
 
+// Update totals when discount values change
+$('#discount-percent, #discount-amount').on('input', function() {
+    updateTotal();
+});
+
 function updateTotal() {
-    let total = 0;
+    let subtotal = 0;
     selectedProducts.forEach(p => {
-        total += p.price * p.quantity;
+        subtotal += p.price * p.quantity;
     });
-    $('#total').text(total.toFixed(2));
+    
+    // Calculate discount
+    const discountPercent = parseFloat($('#discount-percent').val()) || 0;
+    const discountAmount = parseFloat($('#discount-amount').val()) || 0;
+    
+    let percentDiscount = 0;
+    if (discountPercent > 0) {
+        percentDiscount = (subtotal * discountPercent / 100);
+    }
+    
+    const totalDiscount = percentDiscount + discountAmount;
+    let finalTotal = subtotal - totalDiscount;
+    
+    // Ensure total doesn't go below 0
+    if (finalTotal < 0) {
+        finalTotal = 0;
+    }
+    
+    // Update display
+    $('#subtotal').text(subtotal.toFixed(2));
+    $('#total-discount').text(totalDiscount.toFixed(2));
+    $('#total').text(finalTotal.toFixed(2));
 }
 
 $('#sale-form').on('submit', function (e) {
@@ -477,11 +629,19 @@ $('#sale-form').on('submit', function (e) {
         price: p.price
     }));
 
+    const discountPercent = parseFloat($('#discount-percent').val()) || 0;
+    const discountAmount = parseFloat($('#discount-amount').val()) || 0;
+
     $.ajax({
         url: '/api/submit-sale/',
         method: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ shop_id: shopId, products: products }),
+        data: JSON.stringify({ 
+            shop_id: shopId, 
+            products: products,
+            discount_percent: discountPercent,
+            discount_amount: discountAmount
+        }),
         success: function (response) {
             alert("Sale created successfully!");
             // Show success message and redirect

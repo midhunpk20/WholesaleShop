@@ -182,6 +182,11 @@
             font-size: 13px;
         }
 
+        .total-row.discount-row {
+            color: #d73027;
+            font-style: italic;
+        }
+
         .total-row.grand-total {
             font-weight: 700;
             font-size: 16px;
@@ -304,6 +309,16 @@
                 <span class="info-label">Invoice Time:</span>
                 <span class="info-value">{{ sale.date_created|date:"H:i A" }}</span>
             </div>
+            {% if sale.discount_percent > 0 or sale.discount_amount > 0 %}
+            <div class="info-row">
+                <span class="info-label">Discount Applied:</span>
+                <span class="info-value">
+                    {% if sale.discount_percent > 0 %}{{ sale.discount_percent }}%{% endif %}
+                    {% if sale.discount_percent > 0 and sale.discount_amount > 0 %} + {% endif %}
+                    {% if sale.discount_amount > 0 %}INR {{ sale.discount_amount|floatformat:2 }}{% endif %}
+                </span>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -325,8 +340,8 @@
                 <td>{{ forloop.counter }}</td>
                 <td>{{ item.shop_product.product.name }}</td>
                 <td class="item-quantity">{{ item.quantity }}</td>
-                <td class="item-price">INR :{{ item.price|floatformat:2 }}</td>
-                <td class="item-subtotal">INR :{{ item.subtotal|floatformat:2 }}</td>
+                <td class="item-price">INR {{ item.price|floatformat:2 }}</td>
+                <td class="item-subtotal">INR {{ item.subtotal|floatformat:2 }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -334,10 +349,39 @@
 </div>
 
 <div class="invoice-totals">
-    <div class="total-row">
-        <span>Subtotal:</span>
-        <span>INR :{{ sale.total_amount|floatformat:2 }}</span>
-    </div>
+    <!-- Calculate subtotal before discount -->
+    {% if sale.discount_percent > 0 or sale.discount_amount > 0 %}
+        <div class="total-row">
+            <span>Subtotal (Before Discount):</span>
+            <span>INR {{ sale.total_amount|add:sale.discount_amount|floatformat:2 }}</span>
+        </div>
+        
+        <!-- Show discount breakdown -->
+        {% if sale.discount_percent > 0 %}
+            <div class="total-row discount-row">
+                <span>Discount ({{ sale.discount_percent }}%):</span>
+                <span>- INR {% widthratio sale.total_amount|add:sale.discount_amount sale.discount_percent 100 %}</span>
+            </div>
+        {% endif %}
+        
+        {% if sale.discount_amount > 0 and sale.discount_percent == 0 %}
+            <div class="total-row discount-row">
+                <span>Discount Amount:</span>
+                <span>- INR {{ sale.discount_amount|floatformat:2 }}</span>
+            </div>
+        {% elif sale.discount_amount > 0 and sale.discount_percent > 0 %}
+            <div class="total-row discount-row">
+                <span>Additional Discount:</span>
+                <span>- INR {{ sale.discount_amount|floatformat:2 }}</span>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="total-row">
+            <span>Subtotal:</span>
+            <span>INR {{ sale.total_amount|floatformat:2 }}</span>
+        </div>
+    {% endif %}
+    
     <div class="total-row">
         <span>Tax (0%):</span>
         <span>INR 0.00</span>
@@ -352,6 +396,9 @@
     <p><strong>Payment Notes:</strong></p>
     <p>Thank you for your business! Please make payment within 30 days.</p>
     <p>For questions concerning this invoice, please contact our accounting department.</p>
+    {% if sale.discount_percent > 0 or sale.discount_amount > 0 %}
+    <p><strong>Note:</strong> Total discount of INR {{ sale.discount_amount|floatformat:2 }} has been applied to this invoice.</p>
+    {% endif %}
 </div>
 
 <div class="invoice-footer">

@@ -62,6 +62,8 @@ class Sale(models.Model):
     """Model to represent a complete sale transaction"""
     shop = models.ForeignKey('Shop', on_delete=models.CASCADE)
     date_created = models.DateTimeField(auto_now_add=True)
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     
     # Payment status options
